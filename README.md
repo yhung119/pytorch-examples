@@ -730,9 +730,10 @@ class FaceLandmarksDataset(Dataset):
 ```
 You can also check out my implemetation here: https://github.com/yhung119/PointNet3/blob/master/dataset.py
 
-Another feature of the dataset class is the Transforms, which will be applied on the read image whenever the data is sampled. The dataset doesn't actually expand the dataset, but randomly samples with one of the transforms. Therefore, the data is augmentated.
+Another feature of the dataset class is the Transforms, which will be applied on the read image whenever the data is sampled. **The dataset doesn't actually expand the dataset, but randomly samples with one of the transforms. So the data is augmentated on the fly.**
 
-Example of transforms and applying them on to dataset: (also borrowed from http://pytorch.org/tutorials/beginner/data_loading_tutorial.html) 
+Example of transforms and applying them on to dataset: 
+(also borrowed from http://pytorch.org/tutorials/beginner/data_loading_tutorial.html) 
 
 ```python
 class Rescale(object):
@@ -827,7 +828,10 @@ train_loader = DataLoader(train_dataset, batch_size=opt.batchSize,
 ```
 
 ## PyTorch: LSTM
-Pytorch utilizes Cuda to efficiently run LSTM with multiple batches on the backend. However, if the model requires customized RNN Cell or LSTM Cell, the speed is significantly reduced. To learn more about the models. Refer to their documentations, http://pytorch.org/docs/master/nn.html#lstm and http://pytorch.org/docs/master/nn.html#lstmcell. 
+Pytorch utilizes Cuda to efficiently run LSTM with multiple batches on the backend. However, if the model requires customized RNN Cell or LSTM Cell, the speed is significantly reduced. To learn more about the models. 
+
+Refer to their documentations, http://pytorch.org/docs/master/nn.html#lstm and http://pytorch.org/docs/master/nn.html#lstmcell. 
+
 Example of LSTM:
 ```python
 class Sample1(nn.Module):
@@ -880,14 +884,19 @@ class Sample2(nn.Module):
 ## Other references
 ### Official tutorial
 Staring guide: http://pytorch.org/tutorials/beginner/deep_learning_60min_blitz.html
+
 ### Logging and viewing results in Tensorboard
 I personally use the single file plugin because I had compiling issues with tensorboard x.  
+
 Tensorboard X: https://github.com/lanpa/tensorboard-pytorch
+
 Single file plugin: https://github.com/yunjey/pytorch-tutorial/tree/master/tutorials/04-utils/tensorboard
 
 ### Other tutorials
 Below are some useful tutorial and references for Pytorch.
+
 Awesome-Pytorch-list: https://github.com/bharathgs/Awesome-pytorch-list
+
 Practical Pytorch: https://github.com/spro/practical-pytorch
 
 
