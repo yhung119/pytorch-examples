@@ -21,6 +21,9 @@ and the true output.
 - <a href='#pytorch-optim'>PyTorch: optim</a>
 - <a href='#pytorch-custom-nn-modules'>PyTorch: Custom nn Modules</a>
 - <a href='#pytorch-control-flow--weight-sharing'>PyTorch: Control Flow and Weight Sharing</a>
+- <a href='#pytorch-dataloader'> PyTorch: Datasets and custom dataset</a>
+- <a href='#pytorch-lstm'> PyTorch: LSTM </a>
+- <a href='#pytorch-gpu'> PyTorch: GPU utilization
 
 ## Warm-up: numpy
 
@@ -688,3 +691,12 @@ for t in range(500):
   loss.backward()
   optimizer.step()
 ```
+
+## PyTorch: Datasets and custom dataset
+Custom dataset block.
+
+## PyTorch: LSTM
+Test section
+
+## PyTorch: GPU utilization
+gpu block
