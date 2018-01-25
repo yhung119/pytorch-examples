@@ -23,7 +23,7 @@ and the true output.
 - <a href='#pytorch-control-flow--weight-sharing'>PyTorch: Control Flow and Weight Sharing</a>
 - <a href='#pytorch-custom-dataset'> PyTorch: custom dataset</a>
 - <a href='#pytorch-lstm'> PyTorch: LSTM </a>
-- <a href='#other-tutorials'> Other tutorials
+- <a href='#other-references'> Other references </a>
 
 ## Warm-up: numpy
 
