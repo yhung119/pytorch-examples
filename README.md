@@ -23,7 +23,6 @@ and the true output.
 - <a href='#pytorch-control-flow--weight-sharing'>PyTorch: Control Flow and Weight Sharing</a>
 - <a href='#pytorch-custom-dataset'> PyTorch: custom dataset</a>
 - <a href='#pytorch-lstm'> PyTorch: LSTM </a>
-- <a href='#pytorch-gpu-utilization'> PyTorch: GPU utilization
 - <a href='#other-tutorials'> Other tutorials
 
 ## Warm-up: numpy
@@ -697,7 +696,7 @@ for t in range(500):
 The dataset class can be loaded from the library or customized. The dataset will then be used for the dataloader class, which iterates the data with functionalities like shuffle and specified batch size. To create customized dataset, we need to import the datapath and data at __init__, specify the __len__ of the dataset, and implement __getitem__ which returns the data given the index. 
 
 We can create custom dataset as follows: (borrowed from http://pytorch.org/tutorials/beginner/data_loading_tutorial.html)
-```
+```python
 class FaceLandmarksDataset(Dataset):
     """Face Landmarks dataset."""
 
@@ -735,7 +734,7 @@ Another feature of the dataset class is the Transforms, which will be applied on
 
 Example of transforms and applying them on to dataset: (also borrowed from http://pytorch.org/tutorials/beginner/data_loading_tutorial.html) 
 
-```
+```python
 class Rescale(object):
     """Rescale the image in a sample to a given size.
 
@@ -821,18 +820,74 @@ Finally, to load your datasets efficiently with Pytorch, it provides a dataloade
 
 Below is a simple example: 
 
-```
+```python
 train_dataset = ModelNetDataset(root, train=True)
 train_loader = DataLoader(train_dataset, batch_size=opt.batchSize,
                        shuffle=True, num_workers=opt.workers)
 ```
 
 ## PyTorch: LSTM
-Test section
+Pytorch utilizes Cuda to efficiently run LSTM with multiple batches on the backend. However, if the model requires customized RNN Cell or LSTM Cell, the speed is significantly reduced. To learn more about the models. Refer to their documentations, http://pytorch.org/docs/master/nn.html#lstm and http://pytorch.org/docs/master/nn.html#lstmcell. 
+Example of LSTM:
+```python
+class Sample1(nn.Module):
+    ''' 
+    Process the batched input with LSTM 
+    
+    parameters:
+      input: (batch_size, seq(num of points), input_size) eg. (32, 2048, 3)
+      
+    '''
+    def __init__(self):
+        super(LSTM, self).__init__()
+        self.conv1 = torch.nn.Conv1d(3, 64, 1)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.rnn = nn.LSTM(input_size=64, hidden_size=128, num_layers=2, batch_first=True)
+        self.out = nn.Linear(128, 40)
 
-## PyTorch: GPU utilization
-gpu block
+    def forward(self, x):
+        x = x.transpose(2,1)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = x.transpose(2,1)
+        r_out, (h_n, h_c) = self.rnn(x, None)
+        out = self.out(r_out[:, -1, :])
+        return out
 
-## Other tutorials
+class Sample2(nn.Module):
+    ''' 
+    Process the input in sequence with LSTM
+    
+    parameters:
+      input: (batch_size, seq(num of points), input_size) eg. (32, 2048, 3)
+      
+    '''
+    def __init__(self):
+        super(LSTM, self).__init__()
+        self.conv1 = torch.nn.Conv1d(3, 64, 1)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.rnn = nn.LSTM(input_size=64, hidden_size=128, num_layers=2, batch_first=True)
+        self.out = nn.Linear(128, 40)
+
+    def forward(self, x):
+        x = x.transpose(2,1)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = x.transpose(2,1)
+        r_out, (h_n, h_c) = self.rnn(x, None)
+        out = self.out(r_out[:, -1, :])
+        return out
+```
+
+## Other references
+### Official tutorial
+Staring guide: http://pytorch.org/tutorials/beginner/deep_learning_60min_blitz.html
+### Logging and viewing results in Tensorboard
+I personally use the single file plugin because I had compiling issues with tensorboard x.  
+Tensorboard X: https://github.com/lanpa/tensorboard-pytorch
+Single file plugin: https://github.com/yunjey/pytorch-tutorial/tree/master/tutorials/04-utils/tensorboard
+
+### Other tutorials
 Below are some useful tutorial and references for Pytorch.
+Awesome-Pytorch-list: https://github.com/bharathgs/Awesome-pytorch-list
+Practical Pytorch: https://github.com/spro/practical-pytorch
+
 
