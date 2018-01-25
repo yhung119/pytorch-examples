@@ -21,9 +21,10 @@ and the true output.
 - <a href='#pytorch-optim'>PyTorch: optim</a>
 - <a href='#pytorch-custom-nn-modules'>PyTorch: Custom nn Modules</a>
 - <a href='#pytorch-control-flow--weight-sharing'>PyTorch: Control Flow and Weight Sharing</a>
-- <a href='#pytorch-dataloader'> PyTorch: Datasets and custom dataset</a>
+- <a href='#pytorch-custom-dataset'> PyTorch: custom dataset</a>
 - <a href='#pytorch-lstm'> PyTorch: LSTM </a>
-- <a href='#pytorch-gpu'> PyTorch: GPU utilization
+- <a href='#pytorch-gpu-utilization'> PyTorch: GPU utilization
+- <a href='#other-tutorials'> Other tutorials
 
 ## Warm-up: numpy
 
@@ -120,8 +121,8 @@ w2 = torch.randn(H, D_out).type(dtype)
 learning_rate = 1e-6
 for t in range(500):
   # Forward pass: compute predicted y
-  h = x.mm(w1)
-  h_relu = h.clamp(min=0)
+  h = x.mm(w1) #matrix multiplication http://pytorch.org/docs/master/torch.html#torch.mm
+  h_relu = h.clamp(min=0) # if xi < 0, then xi = 0. http://pytorch.org/docs/master/torch.html#torch.mm
   y_pred = h_relu.mm(w2)
 
   # Compute and print loss
@@ -259,7 +260,7 @@ class MyReLU(torch.autograd.Function):
     Tensor containing the output. You can cache arbitrary Tensors for use in the
     backward pass using the save_for_backward method.
     """
-    self.save_for_backward(input)
+    self.save_for_backward(input) # https://github.com/pytorch/pytorch/blob/master/torch/autograd/function.py
     return input.clamp(min=0)
 
   def backward(self, grad_output):
@@ -692,11 +693,146 @@ for t in range(500):
   optimizer.step()
 ```
 
-## PyTorch: Datasets and custom dataset
-Custom dataset block.
+## PyTorch: custom dataset
+The dataset class can be loaded from the library or customized. The dataset will then be used for the dataloader class, which iterates the data with functionalities like shuffle and specified batch size. To create customized dataset, we need to import the datapath and data at __init__, specify the __len__ of the dataset, and implement __getitem__ which returns the data given the index. 
+
+We can create custom dataset as follows: (borrowed from http://pytorch.org/tutorials/beginner/data_loading_tutorial.html)
+```
+class FaceLandmarksDataset(Dataset):
+    """Face Landmarks dataset."""
+
+    def __init__(self, csv_file, root_dir, transform=None):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.landmarks_frame = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.landmarks_frame)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir,
+                                self.landmarks_frame.iloc[idx, 0])
+        image = io.imread(img_name)
+        landmarks = self.landmarks_frame.iloc[idx, 1:].as_matrix()
+        landmarks = landmarks.astype('float').reshape(-1, 2)
+        sample = {'image': image, 'landmarks': landmarks}
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+```
+You can also check out my implemetation here: https://github.com/yhung119/PointNet3/blob/master/dataset.py
+
+Another feature of the dataset class is the Transforms, which will be applied on the read image whenever the data is sampled. The dataset doesn't actually expand the dataset, but randomly samples with one of the transforms. Therefore, the data is augmentated.
+
+Example of transforms and applying them on to dataset: (also borrowed from http://pytorch.org/tutorials/beginner/data_loading_tutorial.html) 
+
+```
+class Rescale(object):
+    """Rescale the image in a sample to a given size.
+
+    Args:
+        output_size (tuple or int): Desired output size. If tuple, output is
+            matched to output_size. If int, smaller of image edges is matched
+            to output_size keeping aspect ratio the same.
+    """
+
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        self.output_size = output_size
+
+    def __call__(self, sample):
+        image, landmarks = sample['image'], sample['landmarks']
+
+        h, w = image.shape[:2]
+        if isinstance(self.output_size, int):
+            if h > w:
+                new_h, new_w = self.output_size * h / w, self.output_size
+            else:
+                new_h, new_w = self.output_size, self.output_size * w / h
+        else:
+            new_h, new_w = self.output_size
+
+        new_h, new_w = int(new_h), int(new_w)
+
+        img = transform.resize(image, (new_h, new_w))
+
+        # h and w are swapped for landmarks because for images,
+        # x and y axes are axis 1 and 0 respectively
+        landmarks = landmarks * [new_w / w, new_h / h]
+
+        return {'image': img, 'landmarks': landmarks}
+
+
+class RandomCrop(object):
+    """Crop randomly the image in a sample.
+
+    Args:
+        output_size (tuple or int): Desired output size. If int, square crop
+            is made.
+    """
+
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
+        else:
+            assert len(output_size) == 2
+            self.output_size = output_size
+
+    def __call__(self, sample):
+        image, landmarks = sample['image'], sample['landmarks']
+
+        h, w = image.shape[:2]
+        new_h, new_w = self.output_size
+
+        top = np.random.randint(0, h - new_h)
+        left = np.random.randint(0, w - new_w)
+
+        image = image[top: top + new_h,
+                      left: left + new_w]
+
+        landmarks = landmarks - [left, top]
+
+        return {'image': image, 'landmarks': landmarks}
+
+scale = Rescale(256)
+crop = RandomCrop(128)
+composed = transforms.Compose([Rescale(256),
+                               RandomCrop(224)])
+
+transformed_dataset = FaceLandmarksDataset(csv_file='faces/face_landmarks.csv',
+                                           root_dir='faces/',
+                                           transform=transforms.Compose([
+                                               Rescale(256),
+                                               RandomCrop(224)
+                                           ]))
+```                    
+
+Finally, to load your datasets efficiently with Pytorch, it provides a dataloader class which couples with dataset class. 
+
+Below is a simple example: 
+
+```
+train_dataset = ModelNetDataset(root, train=True)
+train_loader = DataLoader(train_dataset, batch_size=opt.batchSize,
+                       shuffle=True, num_workers=opt.workers)
+```
 
 ## PyTorch: LSTM
 Test section
 
 ## PyTorch: GPU utilization
 gpu block
+
+## Other tutorials
+Below are some useful tutorial and references for Pytorch.
+
