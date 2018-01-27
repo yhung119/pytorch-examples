@@ -871,11 +871,11 @@ class Sample2(nn.Module):
         super(Sample2, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.rnn = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
+        self.rnn = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True) # num_layer = 1 by default
         self.out = nn.Linear(hidden_size, 40)
         
     def init_hidden(self, batch_size):
-        hx = torch.randn(1, batch_size, self.hidden_size).cuda()
+        hx = torch.randn(1, batch_size, self.hidden_size).cuda() #(num_layers*num_directions, batch_size, hidden_size)
         cx = torch.randn(1, batch_size, self.hidden_size).cuda()
         return Variable(hx), Variable(cx)
         
@@ -895,7 +895,7 @@ To run PyTorch model and variables on GPU, simply adding **cuda()** after model/
 Pytorch also supports multiple GPU and one machine: http://pytorch.org/docs/master/nn.html#torch.nn.DataParallel and 
 multiple GPU with more than one machine: http://pytorch.org/docs/master/nn.html#torch.nn.parallel.DistributedDataParallel
 
-Exampel:
+Example:
 ```python
 use_cuda = torch.cuda.is_available()
 
