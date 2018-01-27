@@ -23,6 +23,7 @@ and the true output.
 - <a href='#pytorch-control-flow--weight-sharing'>PyTorch: Control Flow and Weight Sharing</a>
 - <a href='#pytorch-custom-dataset'> PyTorch: custom dataset</a>
 - <a href='#pytorch-lstm'> PyTorch: LSTM </a>
+- <a href='#pytorch-gpu'> PyTorch: GPU </a>
 - <a href='#other-references'> Other references </a>
 
 ## Warm-up: numpy
@@ -828,7 +829,7 @@ train_loader = DataLoader(train_dataset, batch_size=opt.batchSize,
 ```
 
 ## PyTorch: LSTM
-Pytorch utilizes Cuda to efficiently run LSTM with multiple batches on the backend. However, if the model requires customized RNN Cell or LSTM Cell, the speed is significantly reduced. To learn more about the models. 
+Pytorch utilizes Cuda to efficiently run LSTM with multiple batches on the backend. However, if the model requires customized RNN Cell or LSTM Cell, the speed is significantly reduced. 
 
 Refer to their documentations, http://pytorch.org/docs/master/nn.html#lstm and http://pytorch.org/docs/master/nn.html#lstmcell. 
 
@@ -839,46 +840,73 @@ class Sample1(nn.Module):
     Process the batched input with LSTM 
     
     parameters:
-      input: (batch_size, seq(num of points), input_size) eg. (32, 2048, 3)
+      x: (batch_size, seq(num of points), input_size) eg. (32, 2048, 3) # batch_first
       
+    output:
+      out: (batch_size, 40) 
     '''
     def __init__(self):
-        super(LSTM, self).__init__()
-        self.conv1 = torch.nn.Conv1d(3, 64, 1)
-        self.bn1 = nn.BatchNorm1d(64)
-        self.rnn = nn.LSTM(input_size=64, hidden_size=128, num_layers=2, batch_first=True)
+        super(Sample1, self).__init__()
+        self.rnn = nn.LSTM(input_size=3, hidden_size=128, batch_first=True)
         self.out = nn.Linear(128, 40)
 
     def forward(self, x):
-        x = x.transpose(2,1)
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = x.transpose(2,1)
         r_out, (h_n, h_c) = self.rnn(x, None)
         out = self.out(r_out[:, -1, :])
         return out
 
+# Similarly you can put in the sequence one by one
 class Sample2(nn.Module):
     ''' 
     Process the input in sequence with LSTM
     
     parameters:
-      input: (batch_size, seq(num of points), input_size) eg. (32, 2048, 3)
+      x: (batch_size, seq(num of points), input_size) eg. (32, 2048, 3) # batch_first
+      batch_size: the current batch size
       
+    output:
+      out: (batch_size, 40) 
     '''
-    def __init__(self):
-        super(LSTM, self).__init__()
-        self.conv1 = torch.nn.Conv1d(3, 64, 1)
-        self.bn1 = nn.BatchNorm1d(64)
-        self.rnn = nn.LSTM(input_size=64, hidden_size=128, num_layers=2, batch_first=True)
-        self.out = nn.Linear(128, 40)
-
-    def forward(self, x):
-        x = x.transpose(2,1)
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = x.transpose(2,1)
-        r_out, (h_n, h_c) = self.rnn(x, None)
-        out = self.out(r_out[:, -1, :])
+    def __init__(self, input_size, hidden_size):
+        super(Sample2, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.rnn = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
+        self.out = nn.Linear(hidden_size, 40)
+        
+    def init_hidden(self, batch_size):
+        hx = torch.randn(1, batch_size, self.hidden_size).cuda()
+        cx = torch.randn(1, batch_size, self.hidden_size).cuda()
+        return Variable(hx), Variable(cx)
+        
+    def forward(self, x, batch_size):
+        (hx, cx) = self.init_hidden(batch_size)
+        output = []
+        for i in range(x.size()[1]): # loop through the sequence length
+            r_out, (hx, hc) = self.rnn(x[:,i], (hx, cx))
+            output.append(hx)
+        output = torch.stack(output, 1).squeeze(2)
+        out = self.out(output[:, -1, :])
         return out
+```
+
+## Pytorch: GPU 
+To run PyTorch model and variables on GPU, simply adding **cuda()** after model/variable.
+Pytorch also supports multiple GPU and one machine: http://pytorch.org/docs/master/nn.html#torch.nn.DataParallel and 
+multiple GPU with more than one machine: http://pytorch.org/docs/master/nn.html#torch.nn.parallel.DistributedDataParallel
+
+Exampel:
+```python
+use_cuda = torch.cuda.is_available()
+
+net = model()
+if use_cuda:
+    net = net.cuda()
+    # if has multiple gpu on one machine
+    net = torch.nn.Parallel(model).cuda()
+... 
+    if use_cuda:
+        data, label = data.cuda(), target.cuda()
 ```
 
 ## Other references
