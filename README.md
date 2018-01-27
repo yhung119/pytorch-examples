@@ -1,3 +1,7 @@
+Most of the materials below were borrowed from https://github.com/jcjohnson/pytorch-examples. I added a few remarks I found useful that weren't explained in the original post.
+
+_____________________________________________________________________________________________________________________________
+
 This repository introduces the fundamental concepts of
 [PyTorch](https://github.com/pytorch/pytorch)
 through self-contained examples.
